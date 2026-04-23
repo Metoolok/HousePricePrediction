@@ -220,6 +220,4 @@ AI Engineering Student
 
 ---
 
-## ⭐ If you like this project
 
-Feel free to star the repository and connect on LinkedIn 🚀
