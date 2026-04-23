@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="House Price Predictor",
+    page_title="House Price Prediction",
     page_icon="🏠",
     layout="wide",
 )
@@ -20,9 +20,7 @@ APP_CONFIG_PATH = BASE_DIR / "models" / "app_config.json"
 @st.cache_resource
 def load_model():
     if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            "Model file not found. Please run `python train.py` first."
-        )
+        raise FileNotFoundError("Model file not found. Run `python train.py` first.")
     return joblib.load(MODEL_PATH)
 
 
@@ -41,7 +39,7 @@ def load_app_config():
             return json.load(f)
 
     return {
-        "location_options": ["thane", "mumbai", "pune", "navi mumbai"],
+        "location_options": ["thane", "mumbai", "pune", "navi mumbai", "unknown"],
         "status_options": ["ready to move", "under construction", "unknown"],
         "transaction_options": ["resale", "new property", "unknown"],
         "furnishing_options": ["unfurnished", "semi-furnished", "furnished", "unknown"],
@@ -54,9 +52,7 @@ def load_app_config():
 
 
 def safe_options(values, fallback):
-    if values and isinstance(values, list):
-        return values
-    return fallback
+    return values if values and isinstance(values, list) else fallback
 
 
 def format_inr(value: float) -> str:
@@ -120,51 +116,37 @@ society_options = safe_options(app_config.get("society_options"), ["unknown"])
 car_parking_options = safe_options(app_config.get("car_parking_options"), ["0", "1 covered", "1 open", "2 covered", "unknown"])
 ownership_options = safe_options(app_config.get("ownership_options"), ["freehold", "leasehold", "co-operative society", "unknown"])
 
-st.title("🏠 House Price Predictor")
-st.markdown("Estimate residential property prices with a deployable machine learning pipeline.")
-
-hero1, hero2, hero3 = st.columns(3)
-hero1.metric("Deployment", "Streamlit Cloud")
-hero2.metric("Model", "Compact RandomForest")
-hero3.metric("Use Case", "Portfolio / CV Project")
+st.title("House Price Prediction")
 
 if metrics:
-    with st.expander("Model Performance", expanded=False):
-        c1, c2, c3 = st.columns(3)
-        c1.metric("R² Score", f"{metrics.get('r2', 0):.4f}")
-        c2.metric("MAE", format_inr(metrics.get("mae", 0)))
-        c3.metric("RMSE", format_inr(metrics.get("rmse", 0)))
+    c1, c2, c3 = st.columns(3)
+    c1.metric("R²", f"{metrics.get('r2', 0):.4f}")
+    c2.metric("MAE", format_inr(metrics.get("mae", 0)))
+    c3.metric("RMSE", format_inr(metrics.get("rmse", 0)))
 
-with st.container():
-    left, right = st.columns([1.25, 1])
+st.markdown("### Property Details")
 
-    with left:
-        st.subheader("Property Inputs")
+left, right = st.columns(2)
 
-        area_sqft = st.slider("Area (sqft)", min_value=300, max_value=8000, value=1200, step=50)
-        bathroom = st.slider("Bathrooms", min_value=1, max_value=10, value=2, step=1)
-        balcony = st.slider("Balconies", min_value=0, max_value=6, value=1, step=1)
+with left:
+    area_sqft = st.number_input("Area (sqft)", min_value=300, max_value=10000, value=1200, step=50)
+    bathroom = st.number_input("Bathrooms", min_value=1, max_value=10, value=2, step=1)
+    balcony = st.number_input("Balconies", min_value=0, max_value=10, value=1, step=1)
+    current_floor = st.number_input("Current Floor", min_value=0, max_value=100, value=3, step=1)
+    total_floor = st.number_input("Total Floors", min_value=1, max_value=100, value=10, step=1)
 
-        floor_col1, floor_col2 = st.columns(2)
-        with floor_col1:
-            current_floor = st.number_input("Current Floor", min_value=0, max_value=100, value=3, step=1)
-        with floor_col2:
-            total_floor = st.number_input("Total Floors", min_value=1, max_value=100, value=10, step=1)
+with right:
+    location = st.selectbox("Location", location_options)
+    status = st.selectbox("Status", status_options)
+    transaction = st.selectbox("Transaction", transaction_options)
+    furnishing = st.selectbox("Furnishing", furnishing_options)
+    facing = st.selectbox("Facing", facing_options)
+    overlooking = st.selectbox("Overlooking", overlooking_options)
+    society = st.selectbox("Society", society_options)
+    car_parking = st.selectbox("Car Parking", car_parking_options)
+    ownership = st.selectbox("Ownership", ownership_options)
 
-    with right:
-        st.subheader("Categorical Features")
-
-        location = st.selectbox("Location", location_options, index=0)
-        status = st.selectbox("Status", status_options, index=0)
-        transaction = st.selectbox("Transaction", transaction_options, index=0)
-        furnishing = st.selectbox("Furnishing", furnishing_options, index=0)
-        facing = st.selectbox("Facing", facing_options, index=0)
-        overlooking = st.selectbox("Overlooking", overlooking_options, index=0)
-        society = st.selectbox("Society", society_options, index=0)
-        car_parking = st.selectbox("Car Parking", car_parking_options, index=0)
-        ownership = st.selectbox("Ownership", ownership_options, index=0)
-
-predict_btn = st.button("Predict Price", use_container_width=True, type="primary")
+predict_btn = st.button("Predict", use_container_width=True)
 
 if predict_btn:
     if current_floor > total_floor:
@@ -194,18 +176,13 @@ if predict_btn:
             predicted_price = max(float(np.expm1(pred_log)), 0.0)
             price_per_sqft = predicted_price / area_sqft if area_sqft > 0 else 0.0
 
-            st.success("Prediction completed successfully.")
+            st.markdown("### Prediction")
+            r1, r2 = st.columns(2)
+            r1.metric("Estimated Price", format_inr(predicted_price))
+            r2.metric("Price per sqft", format_inr(price_per_sqft))
 
-            out1, out2, out3 = st.columns(3)
-            out1.metric("Estimated Price", format_inr(predicted_price))
-            out2.metric("Price per sqft", format_inr(price_per_sqft))
-            out3.metric("Floor Ratio", f"{current_floor}/{total_floor}")
-
-            with st.expander("Processed Input Data"):
+            with st.expander("Input Data"):
                 st.dataframe(input_df, use_container_width=True)
 
         except Exception as e:
             st.error(f"Prediction failed: {e}")
-
-st.markdown("---")
-st.caption("Built with Python, scikit-learn, and Streamlit for portfolio deployment.")
