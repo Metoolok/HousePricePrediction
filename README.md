@@ -8,7 +8,7 @@ This project demonstrates a full ML pipeline from raw data processing to a deplo
 ## 🚀 Live Demo
 
 👉 Deployed on Streamlit Cloud (Free)  
-(Add your Streamlit link here after deploy)
+https://housepriceprediction-xryy7qnzwfdpctb395ukzv.streamlit.app/
 
 ---
 
