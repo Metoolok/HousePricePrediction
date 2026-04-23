@@ -1,0 +1,6 @@
+data/
+house_pricess.csv
+__pycache__/
+*.pyc
+logs/
+.venv/
